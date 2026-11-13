@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SnapRec · Activation</title>
+    <meta name="robots" content="noindex" />
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --card: #ffffff;
+        --text: #1b1d21;
+        --soft: #6b7078;
+        --line: rgba(0, 0, 0, 0.1);
+        --accent: #185fa5;
+        --ok: #17845c;
+        --err: #c93b3a;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font: 15px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 28px 18px;
+      }
+      .card {
+        width: 100%;
+        max-width: 460px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 28px 24px 22px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 12px 32px rgba(20, 30, 50, 0.06);
+        text-align: center;
+      }
+      .mark {
+        width: 46px;
+        height: 46px;
+        margin: 0 auto 14px;
+        border-radius: 13px;
+        background: var(--accent);
+        position: relative;
+      }
+      .mark::before {
+        content: "";
+        position: absolute;
+        inset: 13px;
+        border: 2px solid #fff;
+        border-radius: 5px;
+      }
+      .mark::after {
+        content: "";
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #fff;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+      /* 状态切换到成功/失败时,图标换色 + 换符号 */
+      body[data-tone="ok"] .mark { background: var(--ok); }
+      body[data-tone="err"] .mark { background: var(--err); }
+      body[data-tone="ok"] .mark::before,
+      body[data-tone="err"] .mark::before { display: none; }
+      body[data-tone="ok"] .mark::after {
+        content: "";
+        width: 22px;
+        height: 12px;
+        background: none;
+        border-left: 3px solid #fff;
+        border-bottom: 3px solid #fff;
+        border-radius: 0;
+        transform: translate(-50%, -62%) rotate(-45deg);
+      }
+      body[data-tone="err"] .mark::after {
+        content: "";
+        width: 2px;
+        height: 20px;
+        border-radius: 2px;
+        background: #fff;
+        box-shadow: 0 0 0 0 #fff;
+        transform: translate(-50%, -50%) rotate(45deg);
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 19px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      p { margin: 0; color: var(--soft); font-size: 14px; }
+      p + p { margin-top: 8px; }
+
+      .keybox {
+        margin: 18px 0 0;
+        text-align: left;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fafbfc;
+        padding: 10px 12px;
+      }
+      .keybox-label {
+        font-size: 11px;
+        color: var(--soft);
+        margin-bottom: 4px;
+      }
+      code {
+        display: block;
+        font: 12px/1.5 ui-monospace, Consolas, "Courier New", monospace;
+        word-break: break-all;
+        color: var(--text);
+        user-select: all;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      button {
+        flex: 1;
+        font: inherit;
+        font-size: 13px;
+        padding: 9px 14px;
+        border-radius: 9px;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--text);
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
+      }
+      button:hover { border-color: rgba(0, 0, 0, 0.25); }
+      button.primary {
+        background: var(--accent);
+        border-color: transparent;
+        color: #fff;
+        font-weight: 500;
+      }
+      button.primary:hover { background: #124b83; }
+      button:disabled { opacity: 0.6; cursor: default; }
+
+      .stack { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
+      .hint {
+        margin-top: 16px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+        font-size: 12px;
+        color: var(--soft);
+        text-align: left;
+      }
+      .hint b { color: var(--text); font-weight: 500; }
+      #manualRow, #supportRow { display: block; }
+      #manualRow + #supportRow { margin-top: 6px; }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .hidden { display: none !important; }
+
+      /* 等待态的小动画,只在"正在通知扩展"时出现 */
+      .dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        margin-left: 2px;
+        border-radius: 50%;
+        background: var(--soft);
+        animation: blink 1.2s infinite;
+      }
+      .dot:nth-child(2) { animation-delay: 0.2s; }
+      .dot:nth-child(3) { animation-delay: 0.4s; }
+      @keyframes blink { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+      body:not([data-tone="wait"]) .dots { display: none; }
+    </style>
+  </head>
+  <body data-tone="wait">
+    <main class="card">
+      <div class="mark" aria-hidden="true"></div>
+
+      <h1 id="title">Activating SnapRec Pro</h1>
+      <p id="desc">
+        <span id="descText">Contacting the browser extension</span><span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
+      </p>
+
+      <div id="keyBox" class="keybox hidden">
+        <div class="keybox-label">Your license key</div>
+        <code id="keyText"></code>
+        <div class="row">
+          <button id="copyBtn">Copy key</button>
+        </div>
+      </div>
+
+      <div class="stack">
+        <button id="retryBtn" class="primary hidden">Try again</button>
+        <button id="closeBtn" class="hidden">Close this page</button>
+      </div>
+
+      <div id="hint" class="hint hidden">
+        <span id="manualRow"><b>Not activated automatically?</b>Click the SnapRec icon in your browser toolbar and paste the license key above into the input box (it validates automatically on paste).</span>
+        <span id="supportRow">Can't find your key or no email after payment? Contact <a id="mailLink" href="#">support</a>。</span>
+      </div>
+    </main>
+
+    <script>
+      (function () {
+        const $ = (id) => document.getElementById(id);
+
+        const params = new URLSearchParams(location.search);
+        // 多个 key 时 Dodo 用逗号分隔,订阅场景只有一个,取第一个即可
+        const key = (params.get('license_key') || '').split(',')[0].trim();
+        const extId = (params.get('ext') || '').trim();
+        const email = (params.get('email') || '').trim();
+        const status = (params.get('status') || '').trim();
+
+        // 客服邮箱由部署者改这一行,或者留空就隐藏链接
+        const SUPPORT_EMAIL = '';
+
+        const setTone = (tone) => {
+          document.body.dataset.tone = tone;
+        };
+
+        const render = ({ title, desc }) => {
+          // 只改文字节点,dots 的省略号动画由 [data-tone] 控制,不能被覆盖掉
+          $('title').textContent = title;
+          $('descText').textContent = desc || '';
+        };
+
+        const showKey = () => {
+          if (!key) return;
+          $('keyText').textContent = key;
+          $('keyBox').classList.remove('hidden');
+        };
+
+        const showHint = ({ manual = true } = {}) => {
+          // 没有授权码的时候,"把上面的码粘进去"这句是没有意义的,要藏掉
+          const showManual = Boolean(manual && key);
+          const hasSupport = Boolean(SUPPORT_EMAIL && SUPPORT_EMAIL.includes('@'));
+          if (!showManual && !hasSupport) return;
+          $('manualRow').classList.toggle('hidden', !showManual);
+          $('supportRow').classList.toggle('hidden', !hasSupport);
+          $('hint').classList.remove('hidden');
+        };
+
+        if (SUPPORT_EMAIL && SUPPORT_EMAIL.includes('@')) {
+          $('mailLink').href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('SnapRec license issue')}`;
+        } else {
+          // 只藏这一行,别把整个 hint 藏掉
+          $('supportRow').classList.add('hidden');
+        }
+
+        $('closeBtn').addEventListener('click', () => window.close());
+
+        /* ---------------- 没有拿到授权码 ---------------- */
+        if (!key) {
+          setTone('err');
+          if (status === 'failed' || status === 'cancelled' || status === 'expired') {
+            render({
+              title: 'Payment was not completed',
+              desc: `Dodo returned status "${status}". If you were charged, contact support with your payment email address.`,
+            });
+          } else {
+            render({
+              title: 'No license key received',
+              desc: 'Dodo did not include a license key in the redirect. Check the receipt email sent to your payment address, or contact support to have it re-sent.',
+            });
+          }
+          showHint({ manual: false });
+          return;
+        }
+
+        /* ---------------- 授权码已取到,先展示,再做自动激活 ---------------- */
+        showKey();
+
+        $('copyBtn').addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(key);
+            $('copyBtn').textContent = 'Copied';
+            setTimeout(() => ($('copyBtn').textContent = 'Copy key'), 1800);
+          } catch {
+            // 剪贴板被拒(权限/非 https)时,退化为"全选让用户自己复制"
+            const range = document.createRange();
+            range.selectNodeContents($('keyText'));
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            $('copyBtn').textContent = 'Selected — press Ctrl+C';
+          }
+        });
+
+        const toManual = (title, desc) => {
+          setTone('err');
+          render({ title, desc });
+          showHint();
+        };
+
+        /* ---------------- 环境不支持自动激活 ---------------- */
+        if (!extId) {
+          toManual(
+            'Your license key is ready',
+            'This page did not get the extension ID (extensionId is not configured yet). Copy the key above, click the extension icon and paste it there.',
+          );
+          return;
+        }
+        if (!(window.chrome && chrome.runtime && chrome.runtime.sendMessage)) {
+          toManual(
+            'Automatic activation is not available in this browser',
+            'Automatic activation works in Chrome only. Open this page in Chrome, or copy the key above and activate manually.',
+          );
+          return;
+        }
+
+        /* ---------------- 通知扩展 ---------------- */
+        let settled = false;
+
+        const send = () => {
+          $('retryBtn').classList.add('hidden');
+          setTone('wait');
+          render({ title: 'Activating SnapRec Pro', desc: 'Contacting the browser extension' });
+
+          const timer = setTimeout(() => {
+            if (settled) return;
+            settled = true;
+            toManual(
+              'The extension did not respond',
+              'Make sure SnapRec is installed and enabled. Then click the extension icon and paste the key above.',
+            );
+            $('retryBtn').classList.remove('hidden');
+          }, 6000);
+
+          try {
+            chrome.runtime.sendMessage(extId, { type: 'ACTIVATE_FROM_WEB', key, email }, (res) => {
+              // lastError 必须在回调里同步读,否则控制台会报 unchecked error
+              const lastError = chrome.runtime.lastError;
+              if (settled) return;
+              settled = true;
+              clearTimeout(timer);
+
+              if (lastError) {
+                toManual(
+                  'SnapRec extension not found',
+                  'Install the extension first, then click the extension icon and paste the key above.',
+                );
+                $('retryBtn').classList.remove('hidden');
+                return;
+              }
+
+              if (res && res.ok) {
+                setTone('ok');
+                render({ title: 'Activated — you can close this page', desc: 'Back in the browser, Pro features are already unlocked.' });
+                $('keyBox').classList.add('hidden');
+                $('hint').classList.add('hidden');
+                $('closeBtn').classList.remove('hidden');
+                return;
+              }
+
+              toManual(
+                'Activation did not succeed',
+                (res && res.error) || 'The license key failed validation. Click Re-validate in the extension popup and try again, or contact support.',
+              );
+              $('retryBtn').classList.remove('hidden');
+            });
+          } catch {
+            if (!settled) {
+              settled = true;
+              clearTimeout(timer);
+              toManual('Could not reach the extension', 'Copy the license key above, click the extension icon and paste it there.');
+            }
+          }
+        };
+
+        $('retryBtn').addEventListener('click', () => {
+          settled = false;
+          send();
+        });
+
+        send();
+      })();
+    </script>
+  </body>
+</html>
